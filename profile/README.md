@@ -2,8 +2,6 @@
 
 Package manager and operational toolkit for Claude Code-compatible skills. FastSkill enables discovery, installation, versioning, and deployment of skills at scale.
 
-[![Python/Rust package build status](https://github.com/aroff/fastskill/actions/workflows/ci.yml/badge.svg)](https://github.com/aroff/fastskill/actions/workflows/ci.yml)
-
 ## What is FastSkill?
 
 FastSkill is a skill package manager and operational toolkit for the AI agent ecosystem. It builds on Anthropic's standardized Skills format, adding registry services, semantic search, version management, and deployment tooling.
@@ -49,13 +47,13 @@ FastSkill can be installed in several ways depending on your use case:
 Install FastSkill with a single command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/aroff/fastskill/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gofastskill/fastskill/main/scripts/install.sh | bash
 ```
 
 Or download and run the script manually:
 
 ```bash
-wget https://raw.githubusercontent.com/aroff/fastskill/main/scripts/install.sh
+wget https://raw.githubusercontent.com/gofastskill/fastskill/main/scripts/install.sh
 chmod +x install.sh
 ./install.sh
 ```
@@ -74,12 +72,12 @@ The script automatically:
 
 **Manual Installation from GitHub Releases**
 
-Download the pre-built binary for your platform from [GitHub Releases](https://github.com/aroff/fastskill/releases).
+Download the pre-built binary for your platform from [GitHub Releases](https://github.com/gofastskill/fastskill/releases).
 
 **Linux:**
 ```bash
 VERSION="0.6.8"  # Replace with latest version
-wget https://github.com/aroff/fastskill/releases/download/v${VERSION}/fastskill-x86_64-unknown-linux-gnu.tar.gz
+wget https://github.com/gofastskill/fastskill/releases/download/v${VERSION}/fastskill-x86_64-unknown-linux-gnu.tar.gz
 tar -xzf fastskill-x86_64-unknown-linux-gnu.tar.gz
 sudo mv fastskill /usr/local/bin/
 fastskill --version
@@ -89,7 +87,7 @@ fastskill --version
 ```bash
 cargo install fastskill
 # Or build from source
-git clone https://github.com/aroff/fastskill.git
+git clone https://github.com/gofastskill/fastskill.git
 cd fastskill/tools/fastskill/rust
 cargo install --path .
 ```
