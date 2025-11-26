@@ -95,51 +95,6 @@ scoop install fastskill
 
 For more details, see the [Scoop bucket repository](https://github.com/gofastskill/scoop-bucket).
 
-**Manual Installation from GitHub Releases**
-
-Download the pre-built binary for your platform from [GitHub Releases](https://github.com/gofastskill/fastskill/releases).
-
-**Linux:**
-
-```bash
-VERSION="0.6.8"  # Replace with latest version
-wget https://github.com/gofastskill/fastskill/releases/download/v${VERSION}/fastskill-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf fastskill-x86_64-unknown-linux-gnu.tar.gz
-sudo mv fastskill /usr/local/bin/
-fastskill --version
-```
-
-**From Source:**
-
-```bash
-cargo install fastskill
-# Or build from source
-git clone https://github.com/gofastskill/fastskill.git
-cd fastskill/tools/fastskill/rust
-cargo install --path .
-```
-
-**Requirements**: Rust 1.70+ (for source builds), OpenAI API key for embedding features
-
-### Kubernetes Deployment (Production)
-
-Deploy FastSkill as a production service in Kubernetes using Helm:
-
-```bash
-# Create secrets and install chart
-kubectl create namespace fastskill
-kubectl create secret generic fastskill-github-token \
-  --from-literal=GITHUB_TOKEN=your-token -n fastskill
-kubectl create secret generic fastskill-s3-credentials \
-  --from-literal=AWS_ACCESS_KEY_ID=your-key \
-  --from-literal=AWS_SECRET_ACCESS_KEY=your-secret -n fastskill
-
-helm install fastskill ./tools/fastskill/helm/fastskill \
-  --namespace fastskill --create-namespace
-```
-
-For detailed Kubernetes deployment instructions, see the [Kubernetes Deployment Guide](/integration/kubernetes-deployment).
-
 ## Quick Start
 
 ### 1. Configure FastSkill
@@ -242,31 +197,6 @@ embedding:
 # Optional: Custom skills directory
 skills_directory: ".claude/skills"
 ```
-
-The CLI resolves the skills directory using this priority:
-
-1. `skills_directory` from `.fastskill.yaml`
-2. Walk up directory tree to find existing `.claude/skills/`
-3. Default to `.claude/skills/` in current directory (doesn't auto-create)
-
-## Troubleshooting
-
-### Configuration Not Found
-
-If you see "Embedding configuration required but not found":
-
-1. Create `.fastskill.yaml` with embedding configuration (see Quick Start section)
-2. Set `OPENAI_API_KEY` environment variable
-
-**Note**: The error message may mention `fastskill init`, but that command is for skill authors only. For project setup, manually create `.fastskill.yaml` as shown in Quick Start.
-
-### API Key Issues
-
-```bash
-export OPENAI_API_KEY="your-openai-api-key-here"
-```
-
-For persistent setup, add this to your shell profile (`.bashrc`, `.zshrc`, etc.).
 
 ## License
 
