@@ -2,13 +2,21 @@
 
 Package manager and operational toolkit for Claude Code-compatible skills. FastSkill enables discovery, installation, versioning, and deployment of skills at scale.
 
-[![Python/Rust package build status](https://github.com/gofastskill/fastskill/actions/workflows/release.yml/badge.svg)](https://github.com/gofastskill/fastskill/actions/workflows/release.yml)
+[![Python/Rust package build status](https://github.com/gofastskill/fastskill/actions/workflows/ci.yml/badge.svg)](https://github.com/gofastskill/fastskill/actions/workflows/ci.yml)
+
+## Add a skill
+
+```bash
+fastskill add https://github.com/org/skill-repo
+```
+
+Quickly add skills from Git, local folders, or registries to extend your AI agent's capabilities.
 
 ## What is FastSkill?
 
 FastSkill is a skill package manager and operational toolkit for the AI agent ecosystem. It builds on Anthropic's standardized Skills format, adding registry services, semantic search, version management, and deployment tooling.
 
-Skills are recipes that extend AI Agent capabilities with specialized procedures, tool integrations, and domain knowledge. FastSkill provides the infrastructure to develop, manage, consume, and deploy skills at scale.
+**What are skills?** Skills are reusable instruction sets in SKILL.md that extend an AI agent's capabilities with specialized procedures, tool integrations, and domain knowledge. Examples include creating pull requests, integrating cloud services, automating CI/CD workflows, and domain-specific data processing. FastSkill provides the infrastructure to develop, manage, consume, and deploy skills at scale.
 
 ## Key Capabilities
 
@@ -18,6 +26,10 @@ Skills are recipes that extend AI Agent capabilities with specialized procedures
 - **Manifest System**: Declarative dependency management with lock files for reproducible installations
 - **HTTP API**: RESTful service layer for agent integration
 - **Web UI**: Browse and manage skills through web interface
+
+## Compatible Agents
+
+Optimized for Claude Code. Skills follow the same SKILL.md format used by Cursor and other AI agents.
 
 ## Core Use Cases
 
@@ -44,7 +56,7 @@ FastSkill can be installed in several ways depending on your use case:
 
 ### CLI Installation
 
-**Quick Install**
+**Quick Install (Recommended)**
 
 Install FastSkill with a single command:
 
@@ -61,14 +73,12 @@ chmod +x install.sh
 ```
 
 The script automatically:
-
 - Detects your platform
-- Downloads the latest version (or specify a version: `./install.sh v0.7.8`)
+- Downloads the latest version (or specify a version: `./install.sh v0.6.8`)
 - Installs to `/usr/local/bin` (or `~/.local/bin` if sudo is unavailable)
 - Verifies the installation
 
 **Options:**
-
 - `--user`: Install to `~/.local/bin` instead of system directory
 - `--prefix DIR`: Install to a custom directory
 - `--force`: Overwrite existing installation
@@ -95,16 +105,101 @@ scoop install fastskill
 
 For more details, see the [Scoop bucket repository](https://github.com/gofastskill/scoop-bucket).
 
+**Manual Installation from GitHub Releases**
+
+Download the pre-built binary for your platform from [GitHub Releases](https://github.com/gofastskill/fastskill/releases).
+
+**Linux:**
+
+Two Linux binaries are available:
+
+| Binary | Best For | Compatibility |
+|--------|----------|---------------|
+| `fastskill-x86_64-unknown-linux-musl.tar.gz` | Containers, CI/CD, older distributions | Universal - works on any Linux (Ubuntu 18.04+, RHEL 7+, Alpine, etc.). Note: Built without git-support; use system git for git operations. |
+| `fastskill-x86_64-unknown-linux-gnu.tar.gz` | FIPS/compliance, full git2 support | Requires glibc 2.38+ (Ubuntu 24.04+, Fedora 39+). Includes native git integration. |
+
+**Recommended: Use the musl (static) binary for maximum compatibility:**
+
+```bash
+VERSION="0.8.6"  # Replace with latest version
+wget https://github.com/gofastskill/fastskill/releases/download/v${VERSION}/fastskill-x86_64-unknown-linux-musl.tar.gz
+tar -xzf fastskill-x86_64-unknown-linux-musl.tar.gz
+sudo mv fastskill /usr/local/bin/
+fastskill --version
+```
+
+**For FIPS/compliance environments requiring dynamic linking:**
+
+```bash
+VERSION="0.8.6"  # Replace with latest version
+wget https://github.com/gofastskill/fastskill/releases/download/v${VERSION}/fastskill-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf fastskill-x86_64-unknown-linux-gnu.tar.gz
+sudo mv fastskill /usr/local/bin/
+fastskill --version
+```
+
+**From Source:**
+```bash
+cargo install fastskill
+# Or build from source
+git clone https://github.com/gofastskill/fastskill.git
+cd fastskill
+cargo install --path .
+```
+
+**Requirements**: Rust nightly (for source builds), OpenAI API key for embedding features
+
+### Kubernetes Deployment (Production)
+
+Deploy FastSkill as a production service in Kubernetes using Helm:
+
+```bash
+# Create secrets and install chart
+kubectl create namespace fastskill
+kubectl create secret generic fastskill-github-token \
+  --from-literal=GITHUB_TOKEN=your-token -n fastskill
+kubectl create secret generic fastskill-s3-credentials \
+  --from-literal=AWS_ACCESS_KEY_ID=your-key \
+  --from-literal=AWS_SECRET_ACCESS_KEY=your-secret -n fastskill
+
+helm install fastskill ./tools/fastskill/helm/fastskill \
+  --namespace fastskill --create-namespace
+```
+
+For detailed Kubernetes deployment instructions, see the [Kubernetes Deployment Guide](/integration/kubernetes-deployment).
+
 ## Quick Start
 
 ### 1. Configure FastSkill
 
-Create `.fastskill.yaml` in your project root:
+Create `skill-project.toml` in your project root:
 
-```yaml
-embedding:
-  openai_base_url: "https://api.openai.com/v1"
-  embedding_model: "text-embedding-3-small"
+```toml
+[metadata]
+id = "my-project"
+version = "1.0.0"
+
+[dependencies]
+# Add skill dependencies here
+
+[tool.fastskill]
+skills_directory = ".claude/skills"
+
+[tool.fastskill.embedding]
+openai_base_url = "https://api.openai.com/v1"
+embedding_model = "text-embedding-3-small"
+
+[[tool.fastskill.repositories]]
+name = "anthropic"
+type = "git-marketplace"
+url = "https://github.com/anthropics/skills"
+priority = 0
+```
+
+Or use the init command:
+
+```bash
+fastskill init
 ```
 
 Set your OpenAI API key:
@@ -115,15 +210,43 @@ export OPENAI_API_KEY="your-key-here"
 
 ### 2. Add Skills
 
+**Source formats**
+
+| Source | Example |
+|--------|---------|
+| Git URL | `https://github.com/org/skill.git` |
+| Tree URL (subdir) | `https://github.com/org/repo/tree/main/path/to/skill` |
+| Local path | `./local-skill` |
+| Recursive directory | `./skills -r` |
+| Editable (dev) | `./local-skill -e` |
+
+**Options**
+
+| Flag | Description |
+|------|-------------|
+| `-r, --recursive` | Add all skills under directory (local folders only) |
+| `-e, --editable` | Install in editable mode for local development |
+| `-f, --force` | Force registration even if skill exists |
+| `--branch <BRANCH>` | Git branch to checkout (git URLs only) |
+| `--tag <TAG>` | Git tag to checkout (git URLs only) |
+| `--source-type <TYPE>` | Override source type (registry, github, local) |
+| `--group <GROUP>` | Add skill to a specific group |
+
 ```bash
 # Add skill from git URL
 fastskill add https://github.com/org/skill.git
+
+# Add skill from a subdirectory (GitHub tree URL: tree/branch/path/to/skill)
+fastskill add "https://github.com/org/repo/tree/main/path/to/skill"
 
 # Add skill from local folder
 fastskill add ./local-skill
 
 # Add skill in editable mode (for local development)
 fastskill add ./local-skill -e
+
+# Add all skills under a directory (recursive)
+fastskill add ./skills -r
 ```
 
 ### 3. Index and Search
@@ -139,10 +262,22 @@ fastskill search "data processing" --limit 5
 
 ## Essential Commands
 
+| Command | Description |
+|---------|-------------|
+| `fastskill add <source>` | Add skill from Git, local, or registry |
+| `fastskill remove <skill-id>` | Remove skill from database |
+| `fastskill show` | List installed skills and metadata |
+| `fastskill update` | Update skills to latest versions |
+| `fastskill search "query"` | Semantic search for skills |
+| `fastskill reindex` | Rebuild vector index for search |
+| `fastskill serve` | Start HTTP API server |
+| `fastskill init` | Initialize skill-project.toml |
+| `fastskill package` | Package skills into ZIP artifacts |
+
 ### Skill Management
 
 ```bash
-fastskill add <source>              # Add skill (git URL, local path, or ZIP)
+fastskill add <source>              # Add skill (git URL, tree URL for subdir, local path, or ZIP). Use -r for recursive folder add
 fastskill remove <skill-id>          # Remove skill
 fastskill show                       # List installed skills
 fastskill update                     # Update skills to latest versions
@@ -160,7 +295,6 @@ fastskill reindex                    # Rebuild search index
 ```bash
 fastskill serve                      # Start HTTP API server
 fastskill serve --enable-registry    # Enable web UI at /registry
-fastskill proxy                      # Start Claude API proxy server
 ```
 
 ### Skill Authoring
@@ -175,29 +309,137 @@ fastskill package --force --recursive # Package all skills recursively from nest
 
 FastSkill provides a unified repository system for managing all skill storage locations. Repositories can be:
 
-- **Public registries** (crates.io-style with Git index + S3 storage)
+- **Public registries** (HTTP-based index with S3 storage)
 - **Private registries** (enterprise/internal registries)
 - **Git repositories** (with marketplace.json for skill discovery)
 - **ZIP URL sources** (static hosting with marketplace.json)
 - **Local folders** (for development)
 
-All repository types are configured in `.claude/repositories.toml` (or automatically loaded from `sources.toml` and `registries.toml` for backward compatibility).
+All repository types are configured in `skill-project.toml` under `[[tool.fastskill.repositories]]`.
 
 For detailed repository setup, usage, and management instructions, see [docs/REGISTRY.md](docs/REGISTRY.md).
 
 ## Configuration
 
-Create `.fastskill.yaml` in your project root:
+FastSkill uses `skill-project.toml` as the unified configuration file for both project-level and skill-level contexts.
 
-```yaml
-embedding:
-  openai_base_url: "https://api.openai.com/v1"
-  embedding_model: "text-embedding-3-small"
+### skill-project.toml Structure
 
-# Optional: Custom skills directory
-skills_directory: ".claude/skills"
+```toml
+[metadata]
+id = "my-skill"
+version = "1.0.0"
+
+[dependencies]
+# Add your skill dependencies here
+
+[tool.fastskill]
+skills_directory = ".claude/skills"
+
+[tool.fastskill.embedding]
+openai_base_url = "https://api.openai.com/v1"
+embedding_model = "text-embedding-3-small"
+
+[[tool.fastskill.repositories]]
+name = "anthropic"
+type = "git-marketplace"
+url = "https://github.com/anthropics/skills"
+priority = 0
 ```
+
+### Configuration Resolution
+
+The CLI resolves configuration from `skill-project.toml`:
+
+1. Searches current directory and parents for `skill-project.toml`
+2. Extracts `[tool.fastskill]` section for skills directory and embedding config
+3. Extracts `[tool.fastskill.repositories]` for repository sources
+4. Defaults to `.claude/skills/` if no skills_directory is configured
+
+### Installation Scope
+
+FastSkill is project-scoped. Configuration and skills are managed per project using `skill-project.toml` in the project root. There is no global/user-level mode; each project maintains its own skills directory and dependencies.
+
+### Skill Discovery
+
+FastSkill looks for skills in the following locations:
+
+- **skills_directory** - Configured path in `[tool.fastskill.skills_directory]`
+- **Default** - `.claude/skills/` if not specified
+- **Repositories** - All sources from `[[tool.fastskill.repositories]]` including:
+  - Git marketplace repos with marketplace.json
+  - HTTP registries with flat index
+  - ZIP URL sources with marketplace.json
+  - Local filesystem paths
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | OpenAI API key for semantic search and embeddings (required) |
+| `RUST_LOG` | Logging level (e.g., `fastskill=debug`, `fastskill=trace`) |
+| `FASTSKILL_API_URL` | Base URL for registry API |
+| `FASTSKILL_API_TOKEN` | Authentication token for registry API |
+| `FASTSKILL_CONFIG_DIR` | Path to FastSkill configuration directory |
+| `FASTSKILL_JWT_SECRET` | Secret for JWT token generation (HTTP API) |
+| `FASTSKILL_JWT_ISSUER` | JWT issuer claim (default: `fastskill`) |
+| `FASTSKILL_JWT_EXPIRY` | JWT token expiry in seconds |
+| `FASTSKILL_STATIC_DIR` | Path to static files for HTTP server |
+
+### Quick Setup
+
+```bash
+# Initialize a new project
+fastskill init
+
+# Set OpenAI API key for semantic search
+export OPENAI_API_KEY="your-key-here"
+```
+
+## Troubleshooting
+
+### Configuration Not Found
+
+If you see "Embedding configuration required but not found":
+
+1. Run `fastskill init` to create `skill-project.toml`
+2. Add `[tool.fastskill.embedding]` section with embedding configuration
+3. Set `OPENAI_API_KEY` environment variable
+
+### API Key Issues
+
+```bash
+export OPENAI_API_KEY="your-openai-api-key-here"
+```
+
+For persistent setup, add this to your shell profile (`.bashrc`, `.zshrc`, etc.).
+
+### Add fails (git or network)
+
+If `fastskill add` fails with git or network errors:
+
+1. Verify the Git URL is accessible and public (or configured with auth)
+2. Check network connectivity and proxy settings
+3. For private repos, ensure credentials are configured
+4. Use `fastskill add --verbose` for detailed error messages
+
+### Search returns no results
+
+If `fastskill search` returns no results:
+
+1. Run `fastskill reindex` to rebuild the search index
+2. Verify `OPENAI_API_KEY` is set and valid
+3. Check embedding configuration in `[tool.fastskill.embedding]`
+4. Ensure skills are installed (`fastskill show`)
+
+## Documentation
+
+- [Registry Setup](docs/REGISTRY.md) - Detailed registry configuration and management
+- [Kubernetes Deployment](integration/kubernetes-deployment) - Production deployment guide
+- [Security Policy](SECURITY.md) - Security guidelines and vulnerability reporting
+- [GitHub Releases](https://github.com/gofastskill/fastskill/releases) - Latest versions and changelog
 
 ## License
 
 Apache-2.0
+# CI Test
